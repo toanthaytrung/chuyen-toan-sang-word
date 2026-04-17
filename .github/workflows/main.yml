@@ -9,10 +9,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions: # Thêm dòng này để cấp quyền ghi
+      contents: write
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4 # Đã sửa thành v4
+      uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -29,16 +31,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install -q -U google-generativeai
 
-    - name: Create input directory if not exists
-      run: mkdir -p input
-
     - name: Run Python script
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: python main.py
 
     - name: Upload Word Document
-      uses: actions/upload-artifact@v4 # Đã sửa thành v4
+      uses: actions/upload-artifact@v4
       with:
         name: Ket-qua-Word
         path: "*.docx"
