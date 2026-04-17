@@ -1,17 +1,13 @@
 name: Math2Word
+
 on:
-  push:
-    paths:
-      - 'input/**'
-  workflow_dispatch:
+  workflow_dispatch: # Chỉ chạy khi thầy chủ động nhấn nút Run workflow
 
 jobs:
   convert:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Python
@@ -24,14 +20,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pandoc
           pip install -q -U google-generativeai
+          # Cài đặt thêm thư viện xử lý PDF nếu cần trong tương lai
+          pip install -q pillow 
 
-      - name: Run
+      - name: Run Math2Word
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python main.py
 
-      - name: Save Word
-        uses: actions/upload-artifact@v4
+      - name: Save Word Result
+        uses: upload-artifact@v4
         with:
           name: Ket_qua_Word
           path: "*.docx"
