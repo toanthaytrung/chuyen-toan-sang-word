@@ -1,7 +1,7 @@
 name: Math2Word
 
 on:
-  workflow_dispatch: # Chỉ chạy khi thầy chủ động nhấn nút Run workflow
+  workflow_dispatch:
 
 jobs:
   convert:
@@ -20,8 +20,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pandoc
           pip install -q -U google-generativeai
-          # Cài đặt thêm thư viện xử lý PDF nếu cần trong tương lai
-          pip install -q pillow 
 
       - name: Run Math2Word
         env:
