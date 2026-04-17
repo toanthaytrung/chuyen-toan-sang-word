@@ -4,29 +4,29 @@ on:
   workflow_dispatch:
 
 jobs:
-  convert:
+  convert_job:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10'
 
-      - name: Install Tools
+      - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y pandoc
-          pip install -q -U google-generativeai
+          pip install -U google-generativeai
 
-      - name: Run Math2Word
+      - name: Run Python Script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python main.py
 
-      - name: Save Word Result
+      - name: Upload Result
         uses: upload-artifact@v4
         with:
           name: Ket_qua_Word
