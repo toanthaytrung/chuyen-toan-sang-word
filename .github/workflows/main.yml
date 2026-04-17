@@ -1,5 +1,4 @@
-name: Convert Math Image to Word
-
+name: Math2Word
 on:
   push:
     paths:
@@ -7,37 +6,32 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  convert:
     runs-on: ubuntu-latest
-    permissions: # Thêm dòng này để cấp quyền ghi
+    permissions:
       contents: write
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
-    - name: Install Pandoc
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y pandoc
+      - name: Install Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc
+          pip install -q -U google-generativeai
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -q -U google-generativeai
+      - name: Run
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python main.py
 
-    - name: Run Python script
-      env:
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      run: python main.py
-
-    - name: Upload Word Document
-      uses: actions/upload-artifact@v4
-      with:
-        name: Ket-qua-Word
-        path: "*.docx"
+      - name: Save Word
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ket_qua_Word
+          path: "*.docx"
