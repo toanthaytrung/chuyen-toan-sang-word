@@ -7,48 +7,52 @@ from pathlib import Path
 api_key = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
 
-# Tự động tìm model
-available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-model_name = next((m for m in available_models if 'flash' in m), available_models[0])
-model = genai.GenerativeModel(model_name)
+# Tự động tìm model (Ưu tiên bản 1.5 Flash vì nó xử lý tài liệu dài rất tốt)
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 def process():
     input_dir = Path('input')
-    files = [f for f in os.listdir(input_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+    # Quét tất cả file trong input (ảnh và pdf)
+    files = [f for f in os.listdir(input_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.pdf'))]
     
     if not files:
-        print("Không thấy ảnh trong thư mục input.")
+        print("Trống trơn, không có gì để làm thầy ơi!")
         return
 
+    # Xóa các file Word cũ (.docx) đang nằm ở thư mục ngoài để không bị lẫn
+    for old_docx in Path('.').glob("*.docx"):
+        old_docx.unlink()
+
     for filename in files:
-        print(f"--- Đang xử lý: {filename} ---")
-        img_path = input_dir / filename
-        img_data = {'mime_type': 'image/png', 'data': img_path.read_bytes()}
+        print(f"--- Đang xử lý file mới: {filename} ---")
+        file_path = input_dir / filename
         
-        # CÂU LỆNH CHUẨN ĐỀ THI BỘ GD&ĐT
+        # Tải file lên Gemini (Gemini hỗ trợ đọc PDF trực tiếp cực mạnh)
+        uploaded_file = genai.upload_file(path=str(file_path))
+        
         prompt = """
-        Bạn là chuyên gia biên soạn đề thi Toán. Hãy chuyển ảnh này thành Markdown theo định dạng chuẩn của Bộ Giáo dục Việt Nam:
-        1. CÔNG THỨC: Tất cả ký hiệu và công thức toán phải nằm trong $...$ hoặc $$...$$.
-        2. PHÂN LOẠI CÂU HỎI:
-           - Trắc nghiệm 4 lựa chọn: Ghi 'Câu X.', các phương án A, B, C, D in đậm. Nếu ngắn thì để trên 1 dòng, dài thì xuống dòng.
-           - Trắc nghiệm Đúng/Sai: Trình bày thành bảng hoặc danh sách. Mỗi ý a), b), c), d) phải rõ ràng.
-           - Câu trả lời ngắn: Ghi 'Câu X.' và để khoảng trống hoặc ghi 'Đáp số:....'
-        3. TRÌNH BÀY: 
-           - In đậm chữ 'Câu X:', 'A.', 'B.', 'C.', 'D.', 'a)', 'b)', 'c)', 'd)'.
-           - Đảm bảo cấu trúc rõ ràng, không thêm lời dẫn giải của AI.
+        Bạn là chuyên gia số hóa đề thi Toán chuyên nghiệp. 
+        Hãy đọc toàn bộ các trang trong file này và chuyển thành văn bản Markdown:
+        1. Giữ nguyên thứ tự câu hỏi từ đầu đến cuối.
+        2. CÔNG THỨC: Tất cả dùng LaTeX trong $...$ hoặc $$...$$.
+        3. PHÂN LOẠI: 
+           - Câu trắc nghiệm 4 lựa chọn (A, B, C, D).
+           - Câu trắc nghiệm Đúng/Sai (a, b, c, d).
+           - Câu trả lời ngắn.
+        4. TRÌNH BÀY: In đậm 'Câu X:', 'A.', 'B.', 'a)', 'b)'... trình bày chuẩn đề thi của Bộ.
         """
         
-        response = model.generate_content([prompt, img_data])
+        # Chờ file upload xử lý xong rồi mới gọi Content
+        response = model.generate_content([prompt, uploaded_file])
         
-        # Lưu Markdown
+        # Lưu Markdown tạm
         with open("out.md", "w", encoding="utf-8") as f:
             f.write(response.text)
         
-        # Chuyển sang Word (docx)
-        output_name = f"{img_path.stem}.docx"
-        # Thêm tham số --reference-doc nếu thầy có file mẫu (tạm thời để mặc định)
+        # Chuyển sang Word bằng Pandoc
+        output_name = f"{file_path.stem}.docx"
         subprocess.run(["pandoc", "out.md", "-o", output_name])
-        print(f"Thành công: {output_name}")
+        print(f"==> Đã xong file Word cho: {filename}")
 
 if __name__ == "__main__":
     process()
