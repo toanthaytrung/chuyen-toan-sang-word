@@ -1,64 +1,39 @@
 import google.generativeai as genai
 import os
 import subprocess
-import sys
 
-# 1. Lấy API Key từ hệ thống bảo mật của GitHub
+# Lấy API Key
 api_key = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
-def process_math_document():
-    # Tìm file ảnh trong thư mục 'input'
+def process():
     input_dir = 'input'
-    if not os.path.exists(input_dir):
-        os.makedirs(input_dir)
-        print("Hãy cho ảnh vào thư mục 'input' rồi chạy lại nhé.")
+    # Quét tất cả file ảnh trong thư mục input
+    files = [f for f in os.listdir(input_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+    
+    if not files:
+        print("No images found.")
         return
 
-    files = os.listdir(input_dir)
-    image_files = [f for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg', '.pdf'))]
-
-    if not image_files:
-        print("Không tìm thấy file ảnh nào trong thư mục 'input'.")
-        return
-
-    for filename in image_files:
+    for filename in files:
         path = os.path.join(input_dir, filename)
-        print(f"Đang xử lý file: {filename}...")
-
-        # Tải ảnh lên Gemini
-        sample_file = genai.upload_file(path=path)
+        print(f"Processing {filename}...")
         
-        # Yêu cầu Gemini gõ lại nội dung
-        prompt = """
-        Hãy chuyển nội dung trong ảnh này thành văn bản Markdown. 
-        Yêu cầu:
-        1. Các công thức toán học PHẢI được để trong cặp dấu $$...$$ (đối với công thức dòng riêng) hoặc $...$ (đối với công thức trong dòng).
-        2. Không thêm bất kỳ lời giải thích nào khác ngoài nội dung trong ảnh.
-        3. Đảm bảo các ký hiệu toán học chính xác theo chuẩn LaTeX.
-        """
+        # Upload và nội dung
+        img = genai.upload_file(path=path)
+        prompt = "Chuyển toàn bộ nội dung ảnh toán này thành Markdown. Các công thức toán dùng ký hiệu LaTeX nằm trong $...$ hoặc $$...$$. Không thêm lời dẫn."
         
-        response = model.generate_content([prompt, sample_file])
-        markdown_content = response.text
+        response = model.generate_content([prompt, img])
         
-        # Lưu ra file tạm
-        with open("temp.md", "w", encoding="utf-8") as f:
-            f.write(markdown_content)
+        # Lưu ra Markdown tạm
+        with open("out.md", "w", encoding="utf-8") as f:
+            f.write(response.text)
         
-        # 2. Sử dụng Pandoc để chuyển sang Word (.docx)
-        output_filename = os.path.splitext(filename)[0] + ".docx"
-        try:
-            # Lệnh chạy Pandoc để biến mã LaTeX thành Word Equation
-            subprocess.run([
-                "pandoc", "temp.md", 
-                "-o", output_filename,
-                "--from", "markdown",
-                "--to", "docx"
-            ], check=True)
-            print(f"Đã xuất file Word: {output_filename}")
-        except Exception as e:
-            print(f"Lỗi khi xuất Word: {e}")
+        # Dùng Pandoc chuyển sang Word chuẩn Equation
+        output_name = filename.split('.')[0] + ".docx"
+        subprocess.run(["pandoc", "out.md", "-o", output_name])
+        print(f"Done: {output_name}")
 
 if __name__ == "__main__":
-    process_math_document()
+    process()
