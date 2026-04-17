@@ -3,8 +3,8 @@ name: Convert Math Image to Word
 on:
   push:
     paths:
-      - 'input/**' # Chạy mỗi khi bạn thêm ảnh vào thư mục input
-  workflow_dispatch: # Cho phép bạn bấm nút chạy thủ công
+      - 'input/**'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,7 +12,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4 # Đã sửa thành v4
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -27,7 +27,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install google-generativeai
+        pip install -q -U google-generativeai
 
     - name: Create input directory if not exists
       run: mkdir -p input
@@ -38,7 +38,7 @@ jobs:
       run: python main.py
 
     - name: Upload Word Document
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4 # Đã sửa thành v4
       with:
         name: Ket-qua-Word
-        path: "*.docx" # Lưu lại tất cả file Word đã tạo ra
+        path: "*.docx"
