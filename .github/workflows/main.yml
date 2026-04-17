@@ -1,0 +1,44 @@
+name: Convert Math Image to Word
+
+on:
+  push:
+    paths:
+      - 'input/**' # Chạy mỗi khi bạn thêm ảnh vào thư mục input
+  workflow_dispatch: # Cho phép bạn bấm nút chạy thủ công
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install Pandoc
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y pandoc
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install google-generativeai
+
+    - name: Create input directory if not exists
+      run: mkdir -p input
+
+    - name: Run Python script
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      run: python main.py
+
+    - name: Upload Word Document
+      uses: actions/upload-artifact@v3
+      with:
+        name: Ket-qua-Word
+        path: "*.docx" # Lưu lại tất cả file Word đã tạo ra
